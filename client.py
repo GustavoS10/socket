@@ -1,0 +1,52 @@
+import socket
+import os
+import time
+
+BUFFER_SIZE = 100
+
+def calcular_taxa_transferencia(tamanho_arquivo, tempo_transferencia):
+    return tamanho_arquivo / tempo_transferencia
+
+# Create a socket object
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# Connect to the server
+server_address = ('localhost', 5001)
+client_socket.connect(server_address) 
+
+def send_data_from_server():
+    # Select a local file to send
+    file_path = input("Enter the path of the file to send: ")
+
+    try:
+        # Send the file name and file size
+        file_name = os.path.basename(file_path)
+        file_size = os.path.getsize(file_path)
+        file_info = f"{file_name}:{file_size}"
+        client_socket.send(file_info.encode())
+
+        # Send the file
+        inicio_transferencia = time.time()  # Tempo inicial da transferência
+        with open(file_path, 'rb') as file:
+            bytes_sent = 0
+            while bytes_sent < file_size:
+                data = file.read(BUFFER_SIZE)
+                client_socket.sendall(data)
+                bytes_sent += len(data)
+                print("Progress: {:.2f}%".format(bytes_sent / file_size * 100))
+
+        fim_transferencia = time.time()  # Tempo final da transferência
+        tempo_transferencia = fim_transferencia - inicio_transferencia  # Tempo total de transferência em segundos
+        taxa_transferencia = calcular_taxa_transferencia(file_size, tempo_transferencia)
+
+        print("Taxa de transferência:", taxa_transferencia, "bytes por segundo")
+        print("File sent:", file_name)
+
+    except Exception as e:  
+        print(f"Error sending file: {e}")
+
+    finally:
+        # Close the socket
+        client_socket.close()
+
+send_data_from_server()
